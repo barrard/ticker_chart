@@ -11,3 +11,26 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+.chart{
+  border: solid black 1px;
+}
+.overlay {
+  fill: none;
+  stroke: none;
+  pointer-events: all;
+}
+
+.line .crosshair {
+  fill: none;
+  stroke-width: 1px;
+}
+.line #crosshairX {
+  stroke: black;
+}
+.line #crosshairY {
+  stroke: black;
+}
+.volPriceDividerLine{
+  stroke: black;
+}
