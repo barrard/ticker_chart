@@ -20,6 +20,9 @@ code {
   stroke: none;
   pointer-events: all;
 }
+text{
+  fill:black;
+}
 
 .line .crosshair {
   fill: none;
@@ -32,5 +35,18 @@ code {
   stroke: black;
 }
 .volPriceDividerLine{
+  stroke: black;
+}
+.getPointerEvents{
+    pointer-events: all;
+
+}
+
+.noPointerEvents{
+
+  pointer-events: none;
+}
+
+#leftPriceTag{
   stroke: black;
 }
