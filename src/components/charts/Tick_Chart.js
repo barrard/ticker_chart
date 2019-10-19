@@ -4,8 +4,10 @@ import { max, min, extent } from "d3-array";
 import { axisBottom, axisLeft, axisRight, axisTop } from "d3-axis";
 import { timeParse, timeFormat } from "d3-time-format";
 import { format } from "d3-format";
-import { line, curveLinear } from "d3-shape";
 import { select, mouse } from "d3-selection";
+import { addAxes, drawAxisAnnotation} from '../services/axis.js'
+import {hideElements} from '../utils.js'
+
 
 function Tick_Chart({ data }) {
   console.log("Tick_Chart");
@@ -92,33 +94,34 @@ function Tick_Chart({ data }) {
       .append("g")
       .attr("transform", `translate(${0},${candleStickWindowHeight})`);
 
-    let leftPriceAxis = chandleStickWindow
-      .append("g")
-      .attr("id", "leftPriceAxis");
-    leftPriceAxis.call(axisLeft(priceScale));
-    leftPriceAxis
-      .append("path")
-      .attr("id", "leftPriceTag")
-      .attr("stroke", "blue")
-      .attr("stroke-width", 2);
-    leftPriceAxis
-      .append("text")
-      .attr("id", "leftPriceTagText")
 
-    let rightPriceAxis = chandleStickWindow
-      .append("g")
-      .attr("id", "rightPriceAxis")
-      .attr("transform", `translate(${innerWidth},${0})`);
-    rightPriceAxis.call(axisRight(priceScale));
+    /* Axis config  */
+    const leftOpts = {
+      position:'left',
+      scale:priceScale,
+      name: "Price",
+    }
+    const bottomOpts = {
+      position:'bottom',
+      scale:xScale,
+      name: "Time", innerHeight
+    }
+    const rightOpts = {
+      position:'right',
+      scale:priceScale,
+      name: "Price", innerWidth
+    }
+    const topOpts = {
+      position:'top',
+      scale:xScale,
+      name: "Time"
+    }
+    let leftPriceAxis = addAxes(chandleStickWindow, leftOpts);
+    let rightPriceAxis = addAxes(chandleStickWindow, rightOpts);
+    let bottomTimeAxis = addAxes(chandleStickWindow, bottomOpts);
+    let topTimeAxis = addAxes(chandleStickWindow, topOpts);
 
-    let bottomTimeAxis = chandleStickWindow
-      .append("g")
-      .attr("id", "bottomTimeAxis")
-      .attr("transform", `translate(${0},${innerHeight})`);
-    bottomTimeAxis.call(axisBottom(xScale));
 
-    let topTimeAxis = chandleStickWindow.append("g").attr("id", "topTimeAxis");
-    topTimeAxis.call(axisTop(xScale));
 
     let leftVolumeAxis = volumeWindow.append("g").attr("id", "leftVolumeAxis");
     leftVolumeAxis.call(axisLeft(volumeScale).ticks(3));
@@ -185,29 +188,17 @@ function Tick_Chart({ data }) {
       })
       .on("mouseout", function() {
         crosshair.style("display", "none");
-        select('#leftPriceTag').style("display", "none");
-        select('#leftPriceTagText').style("display", "none");
+        hideElements([
+          '#leftPriceTag','#leftPriceTagText',
+          '#rightPriceTag','#rightPriceTagText'
+        ])
       })
       .on("mousemove", mousemove);
 
     function appendCrosshairPrice(y) {
-      let price = priceScale.invert(y).toFixed(3);
-      console.log(String(price).length);
-      if(String(price).length>6)price = parseFloat(price).toFixed(2)
-      console.log({ price: price });
-      console.log(`place a marker at ${y} with value ${price}`);
-      select("#leftPriceTag").attr(
-        "d",
-        AxisMarkerTagAccessor(leftAxisMarkerTagLine(y))
-      ).style("display", 'block')
-      .attr('fill', 'green');
 
-      select("#leftPriceTagText")
-        .text(price)
-        .attr("y", y+4)
-        .attr("x", -6)
-        .attr('font-size', '1.3em')
-      .style("display", 'block')
+      drawAxisAnnotation(leftOpts, y)
+      drawAxisAnnotation(rightOpts, y)
     }
     function appendCrosshairVolume(y) {
       console.log(`place a marker at ${y} with value ${volumeScale.invert(y)}`);
@@ -309,26 +300,3 @@ function addPadding(val, padding) {
   return num;
 }
 
-const AxisMarkerTagAccessor = line()
-  .x(d => d.x)
-  .y(d => d.y)
-  .curve(curveLinear);
-
-  const leftAxisMarkerTagLine = y => [
-    { x: 0, y: 0 + y },
-    { x: -20, y: -20 + y },
-    { x: -60, y: -20 + y },
-    { x: -60, y: 20 + y },
-    { x: -20, y: 20 + y },
-    { x: 0, y: 0 + y }
-  ];
-
-
-  const rightAxisMarkerTagLine = y => [
-    { x: 0, y: 0 + y },
-    { x: 20, y: -20 + y },
-    { x: 60, y: -20 + y },
-    { x: 60, y: 20 + y },
-    { x: 20, y: 20 + y },
-    { x: 0, y: 0 + y }
-  ];
