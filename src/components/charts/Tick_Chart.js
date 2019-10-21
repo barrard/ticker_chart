@@ -5,9 +5,8 @@ import { axisBottom, axisLeft, axisRight, axisTop } from "d3-axis";
 import { timeParse, timeFormat } from "d3-time-format";
 import { format } from "d3-format";
 import { select, mouse } from "d3-selection";
-import { addAxes, drawAxisAnnotation} from '../services/axis.js'
-import {hideElements} from '../utils.js'
-
+import { addAxes, drawAxisAnnotation } from "../services/axis.js";
+import { hideElements } from "../utils.js";
 
 function Tick_Chart({ data }) {
   console.log("Tick_Chart");
@@ -94,43 +93,59 @@ function Tick_Chart({ data }) {
       .append("g")
       .attr("transform", `translate(${0},${candleStickWindowHeight})`);
 
-
     /* Axis config  */
     const leftOpts = {
-      position:'left',
-      scale:priceScale,
-      name: "Price",
-    }
+      position: "left",
+      scale: priceScale,
+      name: "Price"
+    };
     const bottomOpts = {
-      position:'bottom',
-      scale:xScale,
-      name: "Time", innerHeight
-    }
+      position: "bottom",
+      scale: xScale,
+      name: "Time",
+      innerHeight
+    };
     const rightOpts = {
-      position:'right',
-      scale:priceScale,
-      name: "Price", innerWidth
-    }
+      position: "right",
+      scale: priceScale,
+      name: "Price",
+      innerWidth
+    };
     const topOpts = {
-      position:'top',
-      scale:xScale,
+      position: "top",
+      scale: xScale,
       name: "Time"
-    }
+    };
+    const leftVolOpts = {
+      position: "left",
+      scale: volumeScale,
+      name: "Volume"
+    };
+    const rightVolOpts = {
+      position: "right",
+      scale: volumeScale,
+      name: "Volume",
+      innerWidth
+    };
+
+
+
     let leftPriceAxis = addAxes(chandleStickWindow, leftOpts);
     let rightPriceAxis = addAxes(chandleStickWindow, rightOpts);
     let bottomTimeAxis = addAxes(chandleStickWindow, bottomOpts);
     let topTimeAxis = addAxes(chandleStickWindow, topOpts);
 
+    let leftVolumeAxis = addAxes(volumeWindow, leftVolOpts);
+    let rightVolumeAxis = addAxes(volumeWindow, rightVolOpts);
 
+    // let leftVolumeAxis = volumeWindow.append("g").attr("id", "leftVolumeAxis");
+    // leftVolumeAxis.call(axisLeft(volumeScale).ticks(3));
 
-    let leftVolumeAxis = volumeWindow.append("g").attr("id", "leftVolumeAxis");
-    leftVolumeAxis.call(axisLeft(volumeScale).ticks(3));
-
-    let rightVolumeAxis = volumeWindow
-      .append("g")
-      .attr("id", "leftVolumeAxis")
-      .attr("transform", `translate(${innerWidth},${0})`);
-    rightVolumeAxis.call(axisRight(volumeScale).ticks(3));
+    // let rightVolumeAxis = volumeWindow
+    //   .append("g")
+    //   .attr("id", "leftVolumeAxis")
+    //   .attr("transform", `translate(${innerWidth},${0})`);
+    // rightVolumeAxis.call(axisRight(volumeScale).ticks(3));
 
     /* CANDLES STICKS */
     let candleSticks = chandleStickWindow.selectAll("rect").data(_data);
@@ -189,17 +204,23 @@ function Tick_Chart({ data }) {
       .on("mouseout", function() {
         crosshair.style("display", "none");
         hideElements([
-          '#leftPriceTag','#leftPriceTagText',
-          '#rightPriceTag','#rightPriceTagText'
-        ])
+          "#leftPriceTag",
+          "#leftPriceTagText",
+          "#rightPriceTag",
+          "#rightPriceTagText",
+          "#rightVolumeTag",
+          "#rightVolumeTagText",
+          "#leftVolumeTag",
+          "#leftVolumeTagText",
+          "#topTimeTag",
+          "#topTimeTagText",
+          "#bottomTimeTag",
+          "#bottomTimeTagText"
+        ]);
       })
       .on("mousemove", mousemove);
 
-    function appendCrosshairPrice(y) {
-
-      drawAxisAnnotation(leftOpts, y)
-      drawAxisAnnotation(rightOpts, y)
-    }
+    function appendCrosshairPrice(y) {}
     function appendCrosshairVolume(y) {
       console.log(`place a marker at ${y} with value ${volumeScale.invert(y)}`);
     }
@@ -208,7 +229,7 @@ function Tick_Chart({ data }) {
       let _mouse = mouse(this);
       var x = _mouse[0];
       var y = _mouse[1];
-      determinWindow(x, y);
+      appendAxisAnnotations(x, y);
       let mouseDate = xScale.invert(_mouse[0]);
       crosshair
         .select("#crosshairX")
@@ -226,19 +247,30 @@ function Tick_Chart({ data }) {
 
       // console.log({ x, y, mouseDate });
     }
-    function determinWindow(x, y) {
+    function appendAxisAnnotations(x, y) {
       /* Candle stick is the top candleStickWindowHeight */
+      drawAxisAnnotation(topOpts, x);
+      drawAxisAnnotation(bottomOpts, x);
       if (y < candleStickWindowHeight) {
-        // console.log(`Hovering over candles ${y}`);
-        // console.log(`price is ${priceScale.invert(y)}`);
-        appendCrosshairPrice(y);
-      } else if (y > candleStickWindowHeight) {
-        // console.log(`Hovering over volume ${y}`);
-        // console.log(
-        //   `vol is ${volumeScale.invert(y - candleStickWindowHeight)}`
-        // );
+        drawAxisAnnotation(leftOpts, y);
+        drawAxisAnnotation(rightOpts, y);
+        hideElements([
+          "#rightVolumeTag",
+          "#rightVolumeTagText",
+          "#leftVolumeTag",
+          "#leftVolumeTagText"
+        ]);
 
-        appendCrosshairVolume(y - candleStickWindowHeight);
+      } else if (y > candleStickWindowHeight) {
+        y = y - candleStickWindowHeight;
+        drawAxisAnnotation(leftVolOpts, y)
+        drawAxisAnnotation(rightVolOpts, y)
+        hideElements([
+          "#leftPriceTag",
+          "#leftPriceTagText",
+          "#rightPriceTag",
+          "#rightPriceTagText",
+        ]);
       }
     }
   }, [
@@ -299,4 +331,3 @@ function addPadding(val, padding) {
   console.log({ num, val, padding });
   return num;
 }
-
