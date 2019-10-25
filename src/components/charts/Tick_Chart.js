@@ -3,10 +3,10 @@ import { scaleLinear, scaleTime } from "d3-scale";
 import { max, min, extent } from "d3-array";
 import { axisBottom, axisLeft, axisRight, axisTop } from "d3-axis";
 import { timeParse, timeFormat } from "d3-time-format";
-import { format } from "d3-format";
 import { select, mouse } from "d3-selection";
 import { addAxes, drawAxisAnnotation } from "../services/axis.js";
 import { hideElements } from "../utils.js";
+import {addMainZoom, addVolZoom} from '../services/zoom.js'
 
 function Tick_Chart({ data }) {
   console.log("Tick_Chart");
@@ -30,6 +30,8 @@ function Tick_Chart({ data }) {
   const volumeWindowHeight = innerHeight * VOL_HEIGHT;
   const draw = useCallback(() => {
     let svg = select(chartRef.current);
+
+
 
     console.log("DRAW");
     if (!data) return;
@@ -78,6 +80,7 @@ function Tick_Chart({ data }) {
     let chartWindow = svg
       .append("g")
       .attr("transform", `translate(${margins.left},${margins.top})`);
+
     /* study divider */
     let volPriceDivder = chartWindow
       .append("line")
@@ -88,67 +91,65 @@ function Tick_Chart({ data }) {
       .attr("y2", candleStickWindowHeight);
 
     /* Candlestick window */
-    let chandleStickWindow = chartWindow.append("g");
+    let candleStickWindow = chartWindow.append("g");
     let volumeWindow = chartWindow
       .append("g")
       .attr("transform", `translate(${0},${candleStickWindowHeight})`);
 
     /* Axis config  */
-    const leftOpts = {
+    let leftOpts = {
       position: "left",
       scale: priceScale,
       name: "Price"
     };
-    const bottomOpts = {
+    let bottomOpts = {
       position: "bottom",
       scale: xScale,
       name: "Time",
       innerHeight
     };
-    const rightOpts = {
+    let rightOpts = {
       position: "right",
       scale: priceScale,
       name: "Price",
       innerWidth
     };
-    const topOpts = {
+    let topOpts = {
       position: "top",
       scale: xScale,
       name: "Time"
     };
-    const leftVolOpts = {
+    let leftVolOpts = {
       position: "left",
       scale: volumeScale,
       name: "Volume"
     };
-    const rightVolOpts = {
+    let rightVolOpts = {
       position: "right",
       scale: volumeScale,
       name: "Volume",
       innerWidth
     };
 
+    leftOpts = addAxes(candleStickWindow, leftOpts);
+    rightOpts = addAxes(candleStickWindow, rightOpts);
+    bottomOpts = addAxes(candleStickWindow, bottomOpts);
+    topOpts = addAxes(candleStickWindow, topOpts);
 
+    leftVolOpts = addAxes(volumeWindow, leftVolOpts);
+    rightVolOpts = addAxes(volumeWindow, rightVolOpts);
 
-    let leftPriceAxis = addAxes(chandleStickWindow, leftOpts);
-    let rightPriceAxis = addAxes(chandleStickWindow, rightOpts);
-    let bottomTimeAxis = addAxes(chandleStickWindow, bottomOpts);
-    let topTimeAxis = addAxes(chandleStickWindow, topOpts);
+    let candleSticks_g = candleStickWindow.append("g");
+    let volumeBars_g = volumeWindow.append("g");
 
-    let leftVolumeAxis = addAxes(volumeWindow, leftVolOpts);
-    let rightVolumeAxis = addAxes(volumeWindow, rightVolOpts);
+    let zoomMainFn = addMainZoom([leftOpts, rightOpts, topOpts, bottomOpts], candleSticks_g)
+    let zoomVolFn = addVolZoom([leftVolOpts, rightVolOpts], volumeBars_g)
+    svg.call(zoomMainFn);
+    volumeWindow.call(zoomVolFn);
 
-    // let leftVolumeAxis = volumeWindow.append("g").attr("id", "leftVolumeAxis");
-    // leftVolumeAxis.call(axisLeft(volumeScale).ticks(3));
-
-    // let rightVolumeAxis = volumeWindow
-    //   .append("g")
-    //   .attr("id", "leftVolumeAxis")
-    //   .attr("transform", `translate(${innerWidth},${0})`);
-    // rightVolumeAxis.call(axisRight(volumeScale).ticks(3));
 
     /* CANDLES STICKS */
-    let candleSticks = chandleStickWindow.selectAll("rect").data(_data);
+    let candleSticks = candleSticks_g.selectAll("rect").data(_data);
     candleSticks.exit().remove();
     candleSticks
       .enter()
@@ -165,7 +166,7 @@ function Tick_Chart({ data }) {
       .attr("fill", d => candleFillAccessor(d));
 
     /* VOLUME BARS */
-    let volumeBars = volumeWindow.selectAll("rect").data(_data);
+    let volumeBars = volumeBars_g.selectAll("rect").data(_data);
     volumeBars.exit().remove();
     volumeBars
       .enter()
@@ -203,20 +204,7 @@ function Tick_Chart({ data }) {
       })
       .on("mouseout", function() {
         crosshair.style("display", "none");
-        hideElements([
-          "#leftPriceTag",
-          "#leftPriceTagText",
-          "#rightPriceTag",
-          "#rightPriceTagText",
-          "#rightVolumeTag",
-          "#rightVolumeTagText",
-          "#leftVolumeTag",
-          "#leftVolumeTagText",
-          "#topTimeTag",
-          "#topTimeTagText",
-          "#bottomTimeTag",
-          "#bottomTimeTagText"
-        ]);
+        removeAllAxisAnnotations();
       })
       .on("mousemove", mousemove);
 
@@ -254,38 +242,15 @@ function Tick_Chart({ data }) {
       if (y < candleStickWindowHeight) {
         drawAxisAnnotation(leftOpts, y);
         drawAxisAnnotation(rightOpts, y);
-        hideElements([
-          "#rightVolumeTag",
-          "#rightVolumeTagText",
-          "#leftVolumeTag",
-          "#leftVolumeTagText"
-        ]);
-
+        removeVolumeAxisAnnotations();
       } else if (y > candleStickWindowHeight) {
         y = y - candleStickWindowHeight;
-        drawAxisAnnotation(leftVolOpts, y)
-        drawAxisAnnotation(rightVolOpts, y)
-        hideElements([
-          "#leftPriceTag",
-          "#leftPriceTagText",
-          "#rightPriceTag",
-          "#rightPriceTagText",
-        ]);
+        drawAxisAnnotation(leftVolOpts, y);
+        drawAxisAnnotation(rightVolOpts, y);
+        removePriceAxisAnnotations();
       }
     }
-  }, [
-    candleStickWindowHeight,
-    data,
-    dataVis,
-    formatTime,
-    innerHeight,
-    innerWidth,
-    margins.left,
-    margins.right,
-    margins.top,
-    parseTime,
-    volumeWindowHeight
-  ]);
+  }, [candleStickWindowHeight, data, dataVis, formatTime, innerHeight, innerWidth, margins.left, margins.right, margins.top, parseTime, volumeWindowHeight]);
   useEffect(() => {
     console.log("first?");
   }, []);
@@ -330,4 +295,39 @@ function addPadding(val, padding) {
   else num = 20;
   console.log({ num, val, padding });
   return num;
+}
+
+function removeAllAxisAnnotations() {
+  hideElements([
+    "#leftPriceTag",
+    "#leftPriceTagText",
+    "#rightPriceTag",
+    "#rightPriceTagText",
+    "#rightVolumeTag",
+    "#rightVolumeTagText",
+    "#leftVolumeTag",
+    "#leftVolumeTagText",
+    "#topTimeTag",
+    "#topTimeTagText",
+    "#bottomTimeTag",
+    "#bottomTimeTagText"
+  ]);
+}
+
+function removePriceAxisAnnotations() {
+  hideElements([
+    "#leftPriceTag",
+    "#leftPriceTagText",
+    "#rightPriceTag",
+    "#rightPriceTagText"
+  ]);
+}
+
+function removeVolumeAxisAnnotations() {
+  hideElements([
+    "#rightVolumeTag",
+    "#rightVolumeTagText",
+    "#leftVolumeTag",
+    "#leftVolumeTagText"
+  ]);
 }

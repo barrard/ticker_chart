@@ -11,34 +11,38 @@ export const addAxes = (chartWindow, options) => {
   let { innerWidth, name, position, scale, innerHeight, ticks } = options;
   ticks = ticks ? ticks : name === "Volume" ? 3 : 10;
   console.log({ ticks });
-  let axis = chartWindow.append("g").attr("id", `${position}${name}Axis`);
+  let axis_group = chartWindow.append("g").attr("id", `${position}${name}Axis`);
   switch (position) {
     case "left":
-      axis.call(axisLeft(scale).ticks(ticks));
+      options.Axis = axisLeft(scale).ticks(ticks)
+      axis_group.call(options.Axis);
       break;
     case "right":
-      axis.attr("transform", `translate(${innerWidth},${0})`);
-      axis.call(axisRight(scale).ticks(ticks));
+      options.Axis = axisRight(scale).ticks(ticks)
+      axis_group.attr("transform", `translate(${innerWidth},${0})`);
+      axis_group.call(options.Axis);
       break;
     case "top":
-      axis.call(axisTop(scale).ticks(ticks));
+      options.Axis = axisTop(scale).ticks(ticks)
+      axis_group.call(options.Axis);
       break;
     case "bottom":
-      axis.attr("transform", `translate(${0},${innerHeight})`);
-      axis.call(axisBottom(scale).ticks(ticks));
+      options.Axis = axisBottom(scale).ticks(ticks)
+      axis_group.attr("transform", `translate(${0},${innerHeight})`);
+      axis_group.call(options.Axis);
       break;
 
     default:
       break;
   }
-  axis
+  axis_group
     .append("path")
     .attr("id", `${position}${name}Tag`)
     // .attr("stroke", "blue")
     .attr("stroke-width", 2);
-  axis.append("text").attr("id", `${position}${name}TagText`);
-
-  return axis;
+  axis_group.append("text").attr("id", `${position}${name}TagText`);
+  options.axis_group = axis_group
+  return options;
 };
 
 export const drawAxisAnnotation = (options, xy) => {
@@ -55,7 +59,7 @@ export const drawAxisAnnotation = (options, xy) => {
   }
   // console.log(String(value).length);
   // console.log({ value: value });
-  console.log(`place a marker at ${xy} with value ${value}`);
+  // console.log(`place a marker at ${xy} with value ${value}`);
   select(`#${position}${name}Tag`)
     .attr("d", getAccessorPathData(options, xy))
     .style("display", "block")
